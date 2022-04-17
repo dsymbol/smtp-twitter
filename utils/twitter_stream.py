@@ -49,18 +49,20 @@ class TwitterStream(tp.StreamListener):
         try:
             d = json.loads(data)
             tw_screen_name = d['user']['screen_name']
+            reply = d['in_reply_to_screen_name']
             tweet_id = d['id_str']
             tweet_link = f"https://twitter.com/{tw_screen_name}/status/{tweet_id}"
             if 'extended_tweet' in d:
                 text = d['extended_tweet']['full_text']
             else:
                 text = d['text']
-            subject = email_subject(tw_screen_name, text)
-            message = f'@{tw_screen_name}\n{text}\nVia: {tweet_link}'
-            print(f'@{tw_screen_name}\n{text}\n')
-            send_email(self.email, self.password, self.receiver, subject, message)
-        except Exception as e:
-            print(e)
+            if str(reply) == 'None' and 'RT @' not in text:
+                subject = email_subject(tw_screen_name, text)
+                message = f'@{tw_screen_name}\n{text}\nVia: {tweet_link}'
+                print(f'@{tw_screen_name}\n{text}\n')
+                send_email(self.email, self.password, self.receiver, subject, message)
+        except:
+            pass
 
         return True
 
