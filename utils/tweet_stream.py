@@ -40,11 +40,37 @@ def email_subject(user, text):
     return message
 
 
-class TwitterStream(tp.StreamListener):
+class TwB:
     def __init__(self):
-        super().__init__()
-        self.email, self.password, self.receiver = load_config()["email"].values()
+        self.auth = tp.OAuth1UserHandler(api_key, api_key_secret, access_token, access_token_secret)
+        self.fetch_tweets()
 
+    def fetch_tweets(self):
+        listener = DataStream(api_key, api_key_secret, access_token, access_token_secret)
+        account_list = self.name_to_id(followed_users)
+        listener.filter(follow=account_list)
+
+    def name_to_id(self, users):
+        api_object = tp.API(self.auth)
+        list_id = []
+        for i in users:
+            user = api_object.get_user(screen_name=str(i))
+            id = user.id
+            list_id.append(str(id))
+        TwB.welcome_message()
+        return list_id
+
+    @staticmethod
+    def welcome_message():
+        print("""
+         ^ ^
+        (O,O)
+        (   ) WAITING FOR TWEETS
+        -"-"------------------------
+        """)
+
+
+class DataStream(tp.Stream):
     def on_data(self, data):
         try:
             d = json.loads(data)
@@ -60,55 +86,17 @@ class TwitterStream(tp.StreamListener):
                 subject = email_subject(tw_screen_name, text)
                 message = f'@{tw_screen_name}\n{text}\nVia: {tweet_link}'
                 print(f'@{tw_screen_name}\n{text}\n')
-                send_email(self.email, self.password, self.receiver, subject, message)
+                send_email(email, password, receiver, subject, message)
         except:
             pass
-
         return True
-
-    def on_error(self, status):
-        print(status.text)
 
     def on_error(self, status_code):
         if status_code == 420:
             return False
 
 
-class TweetBot():
-    def __init__(self):
-        self.api_key, self.api_key_secret, \
-            self.access_token, self.access_token_secret, \
-                self.followed_users = load_config()["twitter"].values()
-
-    def authorize(self):
-        autho = tp.OAuthHandler(self.api_key, self.api_key_secret)
-        autho.set_access_token(self.access_token, self.access_token_secret)
-        return autho
-
-    def fetch_tweets(self):
-        api = self.authorize()
-        api.get_username()
-        TweetBot.welcome_message()
-        listener = TwitterStream()
-        account_list = self.get_tweet_acid(self.followed_users)
-        stream_tweet = tp.Stream(api, listener, tweet_mode='extended')
-        stream_tweet.filter(follow=account_list)
-
-    def get_tweet_acid(self, user_list):
-        api = self.authorize()
-        api_object = tp.API(api)
-        list_id = []
-        for i in user_list:
-            user = api_object.get_user(screen_name=str(i))
-            id = user.id
-            list_id.append(str(id))
-        return list_id
-
-    @staticmethod
-    def welcome_message():
-        print("""
-         ^ ^
-        (O,O)
-        (   ) WAITING FOR TWEETS
-        -"-"------------------------
-        """)
+if __name__ != "__main__":
+    config = load_config()
+    api_key, api_key_secret, access_token, access_token_secret, followed_users = config["twitter"].values()
+    email, password, receiver = config["email"].values()
